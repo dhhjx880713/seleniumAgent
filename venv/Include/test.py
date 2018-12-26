@@ -121,15 +121,15 @@ queueLock.acquire()
 for word in nameList:
     workQueue.put(word)
 queueLock.release()
-
-# 等待队列清空
-while not workQueue.empty():
-    pass
-
-# 通知线程是时候退出
-exitFlag = 1
-
-# 等待所有线程完成
-for t in threads:
-    t.join()
-print ("退出主线程")
+#
+# # 等待队列清空
+# while not workQueue.empty():
+#     pass
+#
+# # 通知线程是时候退出
+# exitFlag = 1
+#
+# # 等待所有线程完成
+# for t in threads:
+#     t.join()
+# print ("退出主线程")
