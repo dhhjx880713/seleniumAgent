@@ -32,7 +32,6 @@ SharedMemoryManager.register("getLock", callable=getLock)
 
 
 class ActivePool(object):
-    """ #copied from http://broadcast.oreilly.com/2009/04/pymotw-multiprocessing-part-2.html"""
     def __init__(self):
         super(ActivePool, self).__init__()
         self.mgr = mp.Manager()
@@ -54,12 +53,7 @@ class ProcessEvent(object):
         self.type = 0
         self.value = 0
                     
-                    
-                    
-#globalProcessEventHandlerThread = ProcessEventHandlerThread()       
-#globalProcessResultQueue = Queue()
-#globalProcessResultQueue = None
-#globalPool = None
+
 globalLock = Lock()
 
 
@@ -112,8 +106,7 @@ class Context(object):
         self.eventQueue =  self.sharedObjectManager.getQueue()
         self.processLock = self.sharedObjectManager.getLock()
 
-        if createProcessPool and numberOfProcesses >0:  
-            self.processEventHandlerThread = ProcessEventHandlerThread(self.eventQueue)
+        if createProcessPool and numberOfProcesses >0:
             self.processPool = Pool(numberOfProcesses)
         
     def test(self):
