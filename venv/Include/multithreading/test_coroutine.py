@@ -16,8 +16,8 @@ def test():
     n_batches = int(200/n_workers)
     for batch_names in chunks(input_data, n_batches):
         print(batch_names)
-    pool = ProcessPoolExecutor(max_workers=n_workers)
-
+    # pool = ProcessPoolExecutor(max_workers=n_workers)
+    
 
 
 def generator_test():
