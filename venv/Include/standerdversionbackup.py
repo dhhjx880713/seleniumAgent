@@ -8,6 +8,9 @@ import time
 import random
 from filedata import *
 
+
+# myIP = r'134.96.191.254'
+
 exitFlag = 0
 class myThread (threading.Thread):
     def __init__(self, threadID, name, q):
@@ -28,6 +31,9 @@ def process_data(threadName, q):
             data = q.get()
             port = data.split("*")[1]
             mla_profile_id = data.split("*")[0]
+            # ip_adress, port_number = port.split(":")
+            # port = ":".join([myIP, port_number])
+            # print(port)
             proxyDict = {
                 "http": "http://"+port,
                 "https": "https://"+port,
@@ -36,12 +42,14 @@ def process_data(threadName, q):
             it = 0
             firstipcheckresult = "a"
             while (it != 200 or firstipcheckresult=="a"):
-                time.sleep(5)
+                time.sleep(10)
                 try:
                     firstipcheck = requests.get('https://api.ipify.org/', proxies=proxyDict)
                     it = firstipcheck.status_code
                     firstipcheckresult = firstipcheck.content
+                    print(proxyDict)
                     print(firstipcheckresult)
+                    print("########################")
                 except:
                     time.sleep(5)
                     print("check false ")

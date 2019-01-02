@@ -10,8 +10,9 @@ import time
 def fetch_url(url):
     # start = time.time()
     driver = webdriver.Chrome(executable_path=r'E:\tmp\chromedriver_win32\chromedriver.exe')
-    driver.switch_to.window("new window")
+    # driver.switch_to.window("new window")
     driver.get(url)
+    # time.sleep(60) ## play time
     # html = driver.page_source
     # print(html)
     # print("'%s\' fetched in %ss" % (url, (time.time() - start)))
