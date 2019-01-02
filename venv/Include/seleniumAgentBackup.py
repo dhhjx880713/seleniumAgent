@@ -5,6 +5,7 @@ import time
 import requests
 from selenium import webdriver
 import random
+import multiprocessing
 
 
 class Thread(threading.Thread):
@@ -23,43 +24,8 @@ class Thread(threading.Thread):
 
     def process_data(self):
         while not self.exitFlag:
-            if not self.q.empty():
-                data = self.q.get()
-                port = data.split("*")[1]
-                mla_profile_id = data.split("*")[0]
-                proxyDict = {
-                    "http": "http://" + port,
-                    "https": "https://" + port,
-                    "ftp": "ftp://10.10.1.10:3128"
-                }
-                it = 0
-                firstipcheckresult = "a"
-                while (it != 200 or firstipcheckresult == "a"):
-                    time.sleep(5)
-                    try:
-                        firstipcheck = requests.get('https://api.ipify.org/', proxies=proxyDict)
-                        it = firstipcheck.status_code
-                        firstipcheckresult = firstipcheck.content
-                        print(firstipcheckresult)
-                    except:
-                        time.sleep(5)
-                        print("check false ")
-                time.sleep(5)
-                it = 0
-                secondcheckresult = firstipcheckresult
-                while (it != 200 or firstipcheckresult == secondcheckresult):
-                    time.sleep(10)
-                    try:
-                        secondipcheck = requests.get('http://api.ipify.org/', proxies=proxyDict)
-                        it = secondipcheck.status_code
-                        secondcheckresult = secondipcheck.content
-                        print(secondcheckresult)
-                    except:
-                        print("check false 2 ")
-                        time.sleep(5)
-
-                print("Start")
-                try:
+            print("Start")
+            try:
                     mla_url = 'http://127.0.0.1:1204/api/v1/profile/start?automation=true&profileId=' + mla_profile_id
                     resp = requests.get(mla_url)
                     json = resp.json()
@@ -105,6 +71,7 @@ class Thread(threading.Thread):
         self.exitFlag = 1
 
 
+
 class SenuliumAgnet(object):
 
     def __init__(self, n_thread=3, port=None, profileID=None):
@@ -130,8 +97,27 @@ class SenuliumAgnet(object):
         self.subthread_ID += 1
         self.subthreads.append(new_thread)
 
+    def init_connetion(self):
+        try:
+            ## send request
+            ip = requests.get('https://api.ipify.org/', proxies=proxyDict)
+            ## get a valid ip
+        except:
+            return False
+
+
     def run(self):
+        self.init_connetion()
         ## initialize all subthreads
+        self.scan_port()
+        ## task to do
+        ## initial, send a request, if get a valid id, initalization succeed
+        ## if no response, auto close
+        ## 1. get ip,
+        ## 1.1 if ip is changed, do something
+        ## 1.2: stop previous subtask, start a new subtask
+        ## 2. timeout (404)
+
         for i in range(1, self.n_thread+1):
             self.add_subthread("Thread-" + str(i))
             self.subthreads[i-1].start()
@@ -144,6 +130,51 @@ class SenuliumAgnet(object):
     def stop_subthreads(self):
         for thread in self.subthreads:
             thread.exit()
+
+    def scan_port(self):
+        if not self.q.empty():
+            data = self.q.get()
+            port = data.split("*")[1]
+            ip_adress, port_number = port.split(":")
+            port = ":".join([myIP, port_number])
+            print(port)
+            mla_profile_id = data.split("*")[0]
+            proxyDict = {
+                "http": "http://" + port,
+                "https": "https://" + port,
+                "ftp": "ftp://10.10.1.10:3128"
+            }
+            it = 0
+
+            ## 10s resend request,
+            ## 3 results
+            ##
+            firstipcheckresult = "a"
+            while (it != 200 or firstipcheckresult == "a"):
+                ## it == 404
+                time.sleep(5)
+                try:
+                    firstipcheck = requests.get('https://api.ipify.org/', proxies=proxyDict)
+                    it = firstipcheck.status_code
+                    firstipcheckresult = firstipcheck.content
+                    print(firstipcheckresult)
+                except:
+                    time.sleep(5)
+                    print("check false ")
+            time.sleep(5)
+            it = 0
+            secondcheckresult = firstipcheckresult
+            while (it != 200 or firstipcheckresult == secondcheckresult):
+                time.sleep(10)
+                try:
+                    secondipcheck = requests.get('http://api.ipify.org/', proxies=proxyDict)
+                    it = secondipcheck.status_code
+                    secondcheckresult = secondipcheck.content
+                    print(secondcheckresult)
+                except:
+                    print("check false 2 ")
+                    time.sleep(5)
+
 
 
 if __name__ == "__main__":
