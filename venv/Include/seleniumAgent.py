@@ -27,7 +27,8 @@ class Worker(multiprocessing.Process):
         self.name = name
         self.task_queue = None
         self.url = url
-        self.driver = None
+        self.shutdown_flag = multiprocessing.Event()
+        self.play_time = 200
 
     def set_task_queue(self, job_queue):
         self.task_queue = job_queue
@@ -40,9 +41,14 @@ class Worker(multiprocessing.Process):
 
     def process_data1(self):
         print('new job in process pid:', os.getpid())
-        self.driver = webdriver.Chrome(executable_path=r'E:\tmp\chromedriver_win32\chromedriver.exe')
-        self.driver.get(self.url)
-        time.sleep(200)
+        driver = webdriver.Chrome(executable_path=r'E:\tmp\chromedriver_win32\chromedriver.exe')
+        driver.get(self.url)
+        past_time = 0
+        time_clip = 0.1
+        while not self.shutdown_flag.is_set() and past_time <= self.play_time:
+            past_time +=time_clip
+            time.sleep(time_clip)
+        driver.quit()
 
     def process_data(self):
         while True: # pulling the next task off the queue and starting it on the current process.
@@ -73,15 +79,10 @@ class Worker(multiprocessing.Process):
             self.task_queue.task_done()
 
     def stop_process(self):
-        # for drive in self.drivers:
-        #     print(drive)
-        #     drive.quit()
-        # print('########################')
-        # print(self.driver)
-        # self.driver.quit()
-        # print(self.driver)
         print('killing process: ', self.name)
         # self.task_queue.cancel_join_thread()
+        self.shutdown_flag.set()
+        time.sleep(0.1)
         self.terminate()
         self.join()
 
@@ -110,6 +111,7 @@ class SeneliumAgent(object):
     def init_proxy_queue(self):
         for item in nameList:
             self.proxy_queue.put(item)
+        print("proxy queue initialized! ")
 
     def init_connection(self):
         ## fetch the first item from task_queue
@@ -127,6 +129,7 @@ class SeneliumAgent(object):
                 previous_check = True
             except:
                 previous_check = False
+                print("check failed")
         self.proxy_queue.task_done()
         print("initialization succeed. ", self.current_ip)
 
@@ -134,7 +137,9 @@ class SeneliumAgent(object):
         pass
 
     def init_subthreads(self):
+        self.workers = []
         for i in range(self.n_workers):
+            print("add worker_"+str(i))
             self.add_worker("Worker_"+str(i))
 
     def start_subthreads(self, job_queue):
@@ -144,12 +149,11 @@ class SeneliumAgent(object):
             self.workers[i].start()
 
     def stop_subthreads(self):
-        for i in range(self.n_workers):
-            if self.workers[i].is_alive():
-                self.workers[i].stop_process()
-        self.workers = []
-        # for i in range(self.n_workers):
-        #     print(self.workers[i].is_alive())
+        if self.workers != []:
+            for worker in self.workers:
+                if worker.is_alive():
+                    worker.stop_process()
+                self.workers = []  ## clean workers pool
 
     def scan_port(self):
         ## scan ports to get new ips, if new ip is different from previous ip, stop and restart subthreads
@@ -175,11 +179,12 @@ class SeneliumAgent(object):
                             self.stop_subthreads()
                             ## restart subthreads with a new job_queue
                             ## todo: json()
-                            time.sleep(0.1)
+                            time.sleep(0.1) ## placehold for json task extraction
                             self.init_subthreads()
                             self.start_subthreads(self.job_queue)
                         else:
                             if self.current_ip != self.previous_ip:
+                                print("##################  ip changed")
                                 self.stop_subthreads()
                                 ## restart subthreads with a new job_queue
                                 time.sleep(0.1)
@@ -209,9 +214,9 @@ class SeneliumAgent(object):
         self.init_proxy_queue()
         self.init_connection()
         ## todo: initilize job queue
-        self.init_subthreads()
+        # self.init_subthreads()
         # self.init_watchdog()
-        self.start_subthreads(self.job_queue)
+        # self.start_subthreads(self.job_queue)
         # time.sleep(0.1)
         # self.stop_subthreads()
         self.scan_port()
