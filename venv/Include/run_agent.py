@@ -7,8 +7,6 @@ def main():
     parser = argparse.ArgumentParser(description="Start the selenium agent rest inferface")
     parser.add_argument("-rest_server_address", default=r'http://46.101.125.90:8080/schedule/')
     parser.add_argument("-port", default="195.154.161.119:4399")
-    # rest_server_address = r'http://46.101.125.90:8080/schedule/'
-    # port = nameList[-3].split("*")[1]
     args = parser.parse_args()
     timeout = 15
     resend_time = 15
