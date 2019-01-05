@@ -201,35 +201,34 @@ class SeneliumAgent(object):
         ## scan ports to get new ips, if new ip is different from previous ip, stop and restart subthreads
         previous_check = True
         while True:
-            # try:
-
-            print(self.port)
-            print(get_proxy_dict(self.port))
             try:
-                resp = requests.get('http://api.ipify.org/', proxies=get_proxy_dict(self.port), timeout=self.timeout)
-            except:
-                print("non response! ")
+                if self.debug:
+                    print(self.port)
+                    print(get_proxy_dict(self.port))
 
-            connect_state = resp.status_code
-            print(resp.content.decode("utf-8"))
-            print(connect_state)
-            ## case 1: return valid ip
-            if connect_state == 200:
-                self.previous_ip = self.current_ip
-                self.current_ip = resp.content.decode("utf-8")
-                # print('new ip: ', self.current_ip)
-                if not previous_check:
-                    self.restart_task()
-                else:
-                    if self.current_ip != self.previous_ip:
-                        print("ip address changed! ")
+                resp = requests.get('http://api.ipify.org/', proxies=get_proxy_dict(self.port), timeout=self.timeout)
+                connect_state = resp.status_code
+                if self.debug:
+                    print(resp.content.decode("utf-8"))
+                    print(connect_state)
+                ## case 1: return valid ip
+                if connect_state == 200:
+                    self.previous_ip = self.current_ip
+                    self.current_ip = resp.content.decode("utf-8")
+                    # print('new ip: ', self.current_ip)
+                    if not previous_check:
                         self.restart_task()
-                previous_check = True
-            ## case 2:
-            else:
-                previous_check = False
-            # except:
-            #     print("check false ")
+                    else:
+                        if self.current_ip != self.previous_ip:
+                            if self.debug:
+                                print("ip address changed! ")
+                            self.restart_task()
+                    previous_check = True
+                ## case 2:
+                else:
+                    previous_check = False
+            except:
+                print("non response!")
 
             time.sleep(15)
 
