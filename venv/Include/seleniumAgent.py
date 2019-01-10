@@ -42,7 +42,7 @@ class Worker(multiprocessing.Process):
     def process_data(self):
         # if
         print('new job in process pid:', os.getpid())
-        driver = webdriver.Chrome(executable_path=r'E:\tmp\chromedriver_win32\chromedriver.exe')
+        driver = webdriver.Chrome(executable_path=r'C:\Users\tonyn\Downloads\chromedriver_win32\chromedriver.exe')
         for task in self.tasks:
             if task is not None:
                 try:
@@ -58,6 +58,7 @@ class Worker(multiprocessing.Process):
             else:
                 continue
             if self.shutdown_flag.is_set():
+                print('break now:', os.getpid())
                 break
         driver.quit()
 
@@ -93,7 +94,7 @@ class Worker(multiprocessing.Process):
         print('killing process: ', self.name)
         # self.task_queue.cancel_join_thread()
         self.shutdown_flag.set()
-        time.sleep(0.1)
+        time.sleep(0.8)
         self.terminate()
         self.join()
 
