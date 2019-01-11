@@ -4,6 +4,7 @@ import requests
 from selenium import webdriver
 import random
 import multiprocessing
+import threading
 import os
 from utils.tools import get_proxy_dict
 import urllib
@@ -49,7 +50,6 @@ class Worker(multiprocessing.Process):
                     driver.get(task['url'])
                     past_time = 0
                     time_clip = 0.1
-
                     while not self.shutdown_flag.is_set() and past_time <= task['watchingtime'] * 60:
                         past_time +=time_clip
                         time.sleep(time_clip)
@@ -93,7 +93,7 @@ class Worker(multiprocessing.Process):
         print('killing process: ', self.name)
         # self.task_queue.cancel_join_thread()
         self.shutdown_flag.set()
-        time.sleep(0.1)
+        time.sleep(0.2)
         self.terminate()
         self.join()
 
