@@ -6,8 +6,11 @@ import random
 import multiprocessing
 import os
 from utils.tools import get_proxy_dict
-import urllib
 import json
+from selenium.common.exceptions import NoSuchElementException
+IGNORED_EXCEPTIONS = (NoSuchElementException,)
+
+
 
 class WatchDog(multiprocessing.Process):
 
@@ -23,36 +26,60 @@ class WatchDog(multiprocessing.Process):
 
 class Worker(multiprocessing.Process):
 
-    def __init__(self, name, tasks=None):
+    def __init__(self, name, tasks=None, debug=False):
         super(Worker, self).__init__()
         self.name = name
-        self.task_queue = None
         self.tasks = tasks
         self.shutdown_flag = multiprocessing.Event()
-        self.play_time = 180
-
-    def set_task_queue(self, job_queue):
-        self.task_queue = job_queue
+        self.debug = debug
 
     def run(self):
         print(self.name)
         print(self.pid)
-        self.process_data()
+        self.process_youtube()
 
-    def process_data(self):
-        # if
+    def process_youtube(self):
         print('new job in process pid:', os.getpid())
-        driver = webdriver.Chrome(executable_path=r'E:\tmp\chromedriver_win32\chromedriver.exe')
+        driver = webdriver.Chrome(executable_path=r'../../geckodriver-v0.23.0-win64/geckodriver.exe')
         for task in self.tasks:
             if task is not None:
+                end_time = time.time() + task['watchingtime'] * 60  ## minutes to seconds
                 try:
                     driver.get(task['url'])
-                    past_time = 0
                     time_clip = 0.1
-                    while not self.shutdown_flag.is_set() and past_time <= task['watchingtime'] * 60:
-                        past_time +=time_clip
-                        time.sleep(time_clip)
-                except:
+                    while not self.shutdown_flag.is_set() and time.time() < end_time:
+                        player_state = driver.execute_script("return document.getElementById('movie_player').getPlayerState()")
+                        '''
+                        youtube player_state
+                        Player_state = 0 means end
+                        Player_state = 1 means playing
+                        Player_state = -1 means advertise
+
+                        '''
+                        if player_state == -1:
+                            if self.debug:
+                                print("ad is playing")
+                            try:
+                                skip_button = driver.find_element_by_class_name('ytp-ad-skip-button')
+                                if skip_button:
+                                    print("find skip button, prepare click in 5 seconds")
+                                    time.sleep(task['ad_watchingtime'])
+                                    while True:
+                                        try:
+                                            skip_button.click()
+                                            break
+                                        except:
+                                            time.sleep(0.1)
+                            except NoSuchElementException:
+                                print('no skip button!')
+                        elif player_state > 0: ### normal playing state
+
+                            time.sleep(time_clip) ### continue to play
+                        elif player_state == 0: ## for a very short video
+                            break
+                        else:
+                            pass
+                except IGNORED_EXCEPTIONS:
                     print("selenium open url failed")
             else:
                 continue
@@ -60,34 +87,6 @@ class Worker(multiprocessing.Process):
                 print('break now:', os.getpid())
                 break
         driver.quit()
-
-    # def process_data_old(self):
-    #     while True: # pulling the next task off the queue and starting it on the current process.
-    #         task_data = self.task_queue.get()
-    #         self.task_queue.cancel_join_thread()
-    #         print("######################")
-    #         print(self.task_queue.qsize())
-    #         if task_data is None:
-    #             self.task_queue.task_done()
-    #             break
-    #         port = task_data.split("*")[1]
-    #         mla_profile_id = task_data.split("*")[0]
-    #         try:
-    #             print('new job in process pid:', os.getpid())
-    #             ### todo: to be tested
-    #             # mla_url = 'http://127.0.0.1:1204/api/v1/profile/start?automation=true&profileId=' + mla_profile_id
-    #             # resp = requests.get(mla_url)
-    #             # json = resp.json()
-    #             # driver = webdriver.Remote(command_executor=json['value'], desired_capabilities={})
-    #             # driver.get(self.url)
-    #             self.driver = webdriver.Chrome(executable_path=r'E:\tmp\chromedriver_win32\chromedriver.exe')
-    #
-    #             self.driver.get(self.url)
-    #             # self.drivers.append(driver)
-    #             time.sleep(230)  ## set watching time
-    #         except:
-    #             pass
-    #         self.task_queue.task_done()
 
     def stop_process(self):
         print('killing process: ', self.name)
@@ -234,7 +233,7 @@ class SeneliumAgent(object):
 
 
     def add_worker(self, name, tasks):
-        new_worker = Worker(name, tasks=tasks)
+        new_worker = Worker(name, tasks=tasks, )
         self.workers.append(new_worker)
 
     def add_watchdog(self, name):
