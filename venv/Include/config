@@ -1,0 +1,6 @@
+{
+    "driver_setting":{
+        "firefox": "geckodriver-v0.23.0-win64/geckodriver.exe",
+        "chrome": "chromedriver_win32/chromedriver.exe"
+    }
+}
